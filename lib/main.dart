@@ -19,9 +19,9 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Flutter Anonymous Chat',
       theme: ThemeData(
-        primaryColor: Colors.deepOrange,
-        scaffoldBackgroundColor: Colors.white
-      ),
+          fontFamily: 'Poppins-Light',
+          primaryColor: Colors.deepOrange,
+          scaffoldBackgroundColor: Colors.white),
       home: Scaffold(
         resizeToAvoidBottomPadding: false,
         body: _handleCurrentScreen(),
@@ -33,7 +33,6 @@ class _MyAppState extends State<MyApp> {
     return new StreamBuilder<FirebaseUser>(
         stream: FirebaseAuth.instance.onAuthStateChanged,
         builder: (BuildContext context, snapshot) {
-          print(snapshot.connectionState.toString());
           if (snapshot.connectionState == ConnectionState.waiting) {
             return new SplashScreen();
           } else {

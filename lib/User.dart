@@ -7,7 +7,8 @@ class User {
   Future<Map> getUserInfo(String uid) async {
     var userInfo = await Firestore()
         .collection('Users')
-        .where('uid', isEqualTo: uid)
+        .where('uid',
+            isEqualTo: uid != null ? uid : await this.getCurrentUserID())
         .getDocuments();
     return userInfo.documents.last.data;
   }
@@ -16,7 +17,7 @@ class User {
       String emailAddress, String password) async {
     try {
       print(emailAddress.split('@'));
-      if (!emailAddress.endsWith('.edu.tr')) {
+      if (emailAddress.endsWith('.edu.tr')) {
         return {
           'success': false,
           'errorMessage': 'Your email domain must be educational',
@@ -62,10 +63,27 @@ class User {
     });
   }
 
+  Future<void> updateUser(aboutUser, department) async {
+    try {
+      await Firestore.instance
+          .collection('Users')
+          .where('uid', isEqualTo: await this.getCurrentUserID())
+          .getDocuments()
+          .then((onValue) async {
+        await onValue.documents[0].reference
+            .updateData({'aboutUser': aboutUser, 'department': department});
+        print('updated');
+      });
+    } catch (e) {
+      print(e.message);
+    }
+  }
+
   Future<Map<String, dynamic>> signIn(emailAddress, password) async {
     try {
       FirebaseUser user = await _firebaseAuth.signInWithEmailAndPassword(
           email: emailAddress, password: password);
+
       return {
         'success': true,
         'errorMessage': null,

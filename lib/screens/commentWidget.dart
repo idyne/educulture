@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:after_layout/after_layout.dart';
+import './profileScreen.dart';
 import '../User.dart';
 
 final User user = new User();
@@ -82,6 +83,7 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
       opacity: _commentOpacity,
       duration: Duration(milliseconds: 1000),
       child: Container(
+        padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
         child: Flex(
           direction: Axis.vertical,
           children: <Widget>[
@@ -92,35 +94,11 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                 padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        Container(
-                            margin: EdgeInsets.only(bottom: 5),
-                            width: 70.0,
-                            height: 70.0,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: new DecorationImage(
-                                image: new ExactAssetImage(
-                                    'assets/images/logo.png'),
-                                fit: BoxFit.cover,
-                              ),
-                            )),
-                        Text(
-                          !widget.comment['isAnonymous']
-                              ? widget.comment['ownerFullName']
-                              : 'Anonymous',
-                          style: TextStyle(fontSize: 15),
-                        )
-                      ],
-                    ),
                     Text(
                       widget.comment['comment'],
-                      style: TextStyle(
-                          fontSize: 20, letterSpacing: 0.2, wordSpacing: 2),
+                      style: TextStyle(fontSize: 20),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -133,45 +111,56 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                               builder: (BuildContext context,
                                   AsyncSnapshot snapshot) {
                                 return snapshot.hasData
-                                    ? FlatButton(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(4.0))),
-                                        highlightColor: Colors.deepOrange,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
+                                    ? Container(
+                                        margin: EdgeInsets.only(right: 10),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: <Widget>[
-                                            Icon(widget.comment['likes']
-                                                    .contains(snapshot.data)
-                                                ? FontAwesomeIcons.solidThumbsUp
-                                                : FontAwesomeIcons.thumbsUp),
-                                            Text(widget.comment['likes'].length
-                                                .toString())
+                                            IconButton(
+                                              color: Colors.deepOrange,
+                                              highlightColor: Colors.deepOrange,
+                                              icon: Icon(widget.comment['likes']
+                                                      .contains(snapshot.data)
+                                                  ? FontAwesomeIcons
+                                                      .solidThumbsUp
+                                                  : FontAwesomeIcons.thumbsUp),
+                                              onPressed: () async {
+                                                if (widget.comment['likes']
+                                                    .contains(snapshot.data)) {
+                                                  Firestore.instance
+                                                      .document('Comments/' +
+                                                          widget.comment
+                                                              .documentID)
+                                                      .updateData({
+                                                    'likes':
+                                                        FieldValue.arrayRemove([
+                                                      await user
+                                                          .getCurrentUserID()
+                                                    ])
+                                                  });
+                                                } else {
+                                                  Firestore.instance
+                                                      .document('Comments/' +
+                                                          widget.comment
+                                                              .documentID)
+                                                      .updateData({
+                                                    'likes':
+                                                        FieldValue.arrayUnion([
+                                                      await user
+                                                          .getCurrentUserID()
+                                                    ])
+                                                  });
+                                                }
+                                              },
+                                            ),
+                                            Text(
+                                              widget.comment['likes'].length
+                                                      .toString() +
+                                                  ' likes',
+                                            )
                                           ],
                                         ),
-                                        onPressed: () async {
-                                          if (widget.comment['likes']
-                                              .contains(snapshot.data)) {
-                                            Firestore.instance
-                                                .document('Comments/' +
-                                                    widget.comment.documentID)
-                                                .updateData({
-                                              'likes': FieldValue.arrayRemove([
-                                                await user.getCurrentUserID()
-                                              ])
-                                            });
-                                          } else {
-                                            Firestore.instance
-                                                .document('Comments/' +
-                                                    widget.comment.documentID)
-                                                .updateData({
-                                              'likes': FieldValue.arrayUnion([
-                                                await user.getCurrentUserID()
-                                              ])
-                                            });
-                                          }
-                                        },
                                       )
                                     : new CircularProgressIndicator();
                               },
@@ -182,31 +171,72 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                                   AsyncSnapshot snapshot) {
                                 return widget.comment['ownerID'] ==
                                         snapshot.data
-                                    ? FlatButton(
-                                        child: Icon(FontAwesomeIcons.trash),
-                                        onPressed: () {
-                                          if (!_isDeleted) {
-                                            setState(() {
-                                              _isDeleted = true;
-                                            });
-                                            decreaseCommentsCount()
-                                                .whenComplete(() async {
-                                              await Firestore.instance
-                                                  .document('Comments/' +
-                                                      widget.comment.documentID)
-                                                  .delete();
-                                            });
-                                          }
-                                        },
+                                    ? Column(
+                                        children: <Widget>[
+                                          IconButton(
+                                            color: Colors.red,
+                                            icon: Icon(FontAwesomeIcons.trash),
+                                            onPressed: () {
+                                              if (!_isDeleted) {
+                                                setState(() {
+                                                  _isDeleted = true;
+                                                });
+                                                decreaseCommentsCount()
+                                                    .whenComplete(() async {
+                                                  await Firestore.instance
+                                                      .document('Comments/' +
+                                                          widget.comment
+                                                              .documentID)
+                                                      .delete();
+                                                });
+                                              }
+                                            },
+                                          ),
+                                          Text('Delete',
+                                              style: TextStyle(fontSize: 14))
+                                        ],
                                       )
-                                    : Text('');
+                                    : Container();
                               },
                             )
                           ],
                         ),
-                        Text(
-                          _compareDate(widget.comment['date']),
-                          style: TextStyle(fontSize: 15),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: <Widget>[
+                            Text(
+                              _compareDate(widget.comment['date']),
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            Container(
+                              margin: EdgeInsets.only(top: 8),
+                              child: !widget.comment['isAnonymous']
+                                  ? InkWell(
+                                      highlightColor: Colors.transparent,
+                                      splashColor: Colors.transparent,
+                                      child: Text(
+                                        '-' + widget.comment['ownerFullName'],
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontFamily: 'Poppins-Black'),
+                                      ),
+                                      onTap: () {
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ProfileScreen(
+                                                      uid: widget
+                                                          .comment['ownerID'],
+                                                    )));
+                                      },
+                                    )
+                                  : Text('-Anonymous',
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontFamily: 'Poppins-Black')),
+                            )
+                          ],
                         )
                       ],
                     )

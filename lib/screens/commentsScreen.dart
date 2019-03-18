@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../User.dart';
+import '../loaders/color_loader_2.dart';
 import 'package:uuid/uuid.dart';
 import './commentWidget.dart';
 
@@ -76,7 +77,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: Icon(Icons.arrow_back),
+          child: Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
         ),
         title: Text('Comments'),
       ),
@@ -89,25 +93,35 @@ class _CommentsScreenState extends State<CommentsScreen> {
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           return snapshot.hasData
               ? Column(
+                  mainAxisSize: MainAxisSize.max,
                   children: <Widget>[
                     _buildList(context, snapshot.data.documents),
                     Divider(),
                     ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 5),
                       title: new TextFormField(
+                        autocorrect: true,
+                        textCapitalization: TextCapitalization.sentences,
                         controller: _commentController,
+                        maxLines: 2,
                         decoration: new InputDecoration(
-                            labelText: 'Write a comment...'),
+                          hintText: 'Write a comment...',
+                          icon: Icon(FontAwesomeIcons.comment),
+                          border: InputBorder.none,
+                        ),
                       ),
-                      trailing: Column(
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          SizedBox(
-                            width: 100,
-                            child: Row(
-                              children: <Widget>[
-                                Icon(FontAwesomeIcons.userSecret),
-                                Switch(value: _isAnon, onChanged: _onChanged1)
-                              ],
-                            ),
+                          Switch(
+                            inactiveThumbImage: AssetImage(
+                                'assets/images/anonymous_inactive.png'),
+                            activeThumbImage: AssetImage(
+                                'assets/images/anonymous_active.png'),
+                            value: _isAnon,
+                            onChanged: _onChanged1,
+                            activeColor: Colors.deepOrange,
                           ),
                           FlatButton(
                             onPressed: () {
@@ -118,14 +132,27 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                 shareComment();
                               }
                             },
-                            child: new Text("Post"),
+                            child: Text(
+                              'Share',
+                              style: TextStyle(fontFamily: 'Poppins-Medium'),
+                            ),
                           )
                         ],
                       ),
                     )
                   ],
                 )
-              : CircularProgressIndicator();
+              : Container(
+                  color: Colors.deepOrange,
+                  child: Align(
+                    alignment: AlignmentDirectional.center,
+                    child: ColorLoader2(
+                      color1: Colors.purple,
+                      color2: Colors.deepPurple,
+                      color3: Colors.blue,
+                    ),
+                  ),
+                );
         },
       ),
     );
@@ -135,12 +162,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
     return Expanded(
       child: ListView.builder(
         reverse: true,
-        physics: BouncingScrollPhysics(),
-        shrinkWrap: true,
         itemBuilder: (BuildContext context, int index) {
-          return Comment(
-              comment: comments[index],
-              postID: widget.postID);
+          return Comment(comment: comments[index], postID: widget.postID);
         },
         itemCount: comments.length,
       ),
