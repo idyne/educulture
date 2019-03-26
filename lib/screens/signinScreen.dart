@@ -111,7 +111,7 @@ class _SignInState extends State<SignInScreen> {
                           child: Column(
                             children: <Widget>[
                               Text(
-                                "EduCulture",
+                                "Educulture",
                                 style: TextStyle(
                                     fontSize: 50.0,
                                     fontWeight: FontWeight.bold,
@@ -190,6 +190,7 @@ class _SignInState extends State<SignInScreen> {
                                 onSaved: (val) =>
                                     setState(() => emailAddress = val),
                                 keyboardType: TextInputType.emailAddress,
+                                autocorrect: false,
                               ),
                             )
                           ],
@@ -296,7 +297,10 @@ class _SignInState extends State<SignInScreen> {
                                                   Icons.arrow_forward,
                                                   color: this.primaryColor,
                                                 ),
-                                                onPressed: () => {},
+                                                onPressed: () {
+                                                  if (!_isLoading)
+                                                    signIn(context);
+                                                },
                                               ),
                                             ),
                                           )
@@ -318,9 +322,7 @@ class _SignInState extends State<SignInScreen> {
                                           )
                                         ],
                                 ),
-                                onPressed: () {
-                                  if (!_isLoading) signIn(context);
-                                },
+                                onPressed: () {},
                               ),
                             ),
                           ],

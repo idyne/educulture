@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -29,6 +30,69 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
     changePostOpacity();
   }
 
+  void _showLikesList() {
+    // flutter defined function
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.6,
+            height: 300,
+            child: ListView.builder(
+              itemBuilder: (context, index) {
+                return FutureBuilder(
+                  future: user.getUserInfo(widget.comment.data['likes'][index]),
+                  builder: (context, snapshot) {
+                    return snapshot.connectionState == ConnectionState.done
+                        ? Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(4),
+                              highlightColor: Colors.deepOrange,
+                              splashColor: Colors.deepOrange,
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => ProfileScreen(
+                                              uid: snapshot.data['uid'],
+                                            )));
+                              },
+                              child: Row(
+                                children: <Widget>[
+                                  Container(
+                                    padding: EdgeInsets.all(2),
+                                    margin: EdgeInsets.only(right: 10),
+                                    width: 30,
+                                    height: 30,
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.grey,
+                                      backgroundImage:
+                                          CachedNetworkImageProvider(snapshot
+                                              .data['profilePictureURL']),
+                                      radius: 50.0,
+                                    ),
+                                  ),
+                                  Text(
+                                      '${snapshot.data['firstName']} ${snapshot.data['lastName']}')
+                                ],
+                              ),
+                            ))
+                        : Container();
+                  },
+                );
+              },
+              itemCount: widget.comment.data['likes'].length,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void changePostOpacity() {
     if (_commentOpacity == 1) {
       setState(() {
@@ -37,6 +101,19 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
     } else {
       setState(() {
         _commentOpacity = 1;
+      });
+    }
+  }
+
+  void deleteComment() {
+    if (!_isDeleted) {
+      setState(() {
+        _isDeleted = true;
+      });
+      decreaseCommentsCount().whenComplete(() async {
+        await Firestore.instance
+            .document('Comments/' + widget.comment.documentID)
+            .delete();
       });
     }
   }
@@ -67,6 +144,39 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
     } catch (e) {
       print(e);
     }
+  }
+
+  void _showDeletionDialog() {
+    // flutter defined function
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text("Delete"),
+          content: new Text("Are you sure?"),
+          actions: <Widget>[
+            // usually buttons at the bottom of the dialog
+            new FlatButton(
+              child: new Text("No", style: TextStyle(color: Colors.deepOrange)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            new FlatButton(
+              child: new Text(
+                "Yes",
+                style: TextStyle(color: Colors.deepOrange),
+              ),
+              onPressed: () {
+                deleteComment();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -120,11 +230,15 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                                             IconButton(
                                               color: Colors.deepOrange,
                                               highlightColor: Colors.deepOrange,
-                                              icon: Icon(widget.comment['likes']
+                                              icon: widget.comment['likes']
                                                       .contains(snapshot.data)
-                                                  ? FontAwesomeIcons
-                                                      .solidThumbsUp
-                                                  : FontAwesomeIcons.thumbsUp),
+                                                  ? Icon(
+                                                      FontAwesomeIcons.poo,
+                                                    )
+                                                  : Icon(
+                                                      FontAwesomeIcons.poop,
+                                                      color: Color(0xC4FF5722),
+                                                    ),
                                               onPressed: () async {
                                                 if (widget.comment['likes']
                                                     .contains(snapshot.data)) {
@@ -154,10 +268,13 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                                                 }
                                               },
                                             ),
-                                            Text(
-                                              widget.comment['likes'].length
-                                                      .toString() +
-                                                  ' likes',
+                                            InkWell(
+                                              child: Text(
+                                                widget.comment['likes'].length
+                                                        .toString() +
+                                                    ' likes',
+                                              ),
+                                              onTap: _showLikesList,
                                             )
                                           ],
                                         ),
@@ -175,21 +292,9 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                                         children: <Widget>[
                                           IconButton(
                                             color: Colors.red,
-                                            icon: Icon(FontAwesomeIcons.trash),
+                                            icon: Icon(FontAwesomeIcons.toilet),
                                             onPressed: () {
-                                              if (!_isDeleted) {
-                                                setState(() {
-                                                  _isDeleted = true;
-                                                });
-                                                decreaseCommentsCount()
-                                                    .whenComplete(() async {
-                                                  await Firestore.instance
-                                                      .document('Comments/' +
-                                                          widget.comment
-                                                              .documentID)
-                                                      .delete();
-                                                });
-                                              }
+                                              _showDeletionDialog();
                                             },
                                           ),
                                           Text('Delete',
@@ -215,7 +320,7 @@ class _CommentState extends State<Comment> with AfterLayoutMixin {
                                       highlightColor: Colors.transparent,
                                       splashColor: Colors.transparent,
                                       child: Text(
-                                        '-' + widget.comment['ownerFullName'],
+                                        widget.comment['ownerFullName'],
                                         style: TextStyle(
                                             fontSize: 14,
                                             fontFamily: 'Poppins-Black'),

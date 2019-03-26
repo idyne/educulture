@@ -17,17 +17,13 @@ class _HomePageState extends State<HomePage> {
   final User user = new User();
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SafeArea(
       child: Container(
-        child: ListView(
+        width: MediaQuery.of(context).size.width,
+        color: Color(0xC4FF5722),
+        child: Column(
           children: <Widget>[
-            Text('Home'),
-            RaisedButton(
-              child: Text("Sign Out"),
-              onPressed: () {
-                user.signOut();
-              },
-            )
+            Text('Home', style: TextStyle(fontSize: 30, color: Colors.white),),
           ],
         ),
       ),

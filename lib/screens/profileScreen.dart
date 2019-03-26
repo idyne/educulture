@@ -172,7 +172,6 @@ class _ProfileScreenStateState extends State<ProfileScreen> {
                   ),
                 )
               : Container(
-                  color: Colors.deepOrange,
                   child: Align(
                     alignment: AlignmentDirectional.center,
                     child: ColorLoader2(

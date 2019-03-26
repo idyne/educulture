@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../User.dart';
-import './commentsScreen.dart';
 import './postWidget.dart';
 
 class ForumScreen extends StatefulWidget {
@@ -14,7 +12,6 @@ class ForumScreen extends StatefulWidget {
 
 class _ForumScreenState extends State<ForumScreen> {
   final User user = new User();
-  
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +38,10 @@ class _ForumScreenState extends State<ForumScreen> {
       },
       child: ListView.builder(
         itemBuilder: (BuildContext context, int index) {
-          return Post(post: snapshots[index],);
+          return Post(
+            post: snapshots[index],
+            isInList: true,
+          );
         },
         itemCount: snapshots.length,
       ),

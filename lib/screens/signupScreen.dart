@@ -37,8 +37,7 @@ class _SignUpState extends State<SignUpScreen> {
       Navigator.of(context).pop();
     }
     if (result['error']) {
-      Toast.show(result['errorMessage'], context,
-           duration: 3);
+      Toast.show(result['errorMessage'], context, duration: 3);
     }
   }
 
@@ -82,7 +81,7 @@ class _SignUpState extends State<SignUpScreen> {
                           child: Column(
                             children: <Widget>[
                               Text(
-                                "EduCulture",
+                                "Educulture",
                                 style: TextStyle(
                                     fontSize: 50.0,
                                     fontWeight: FontWeight.bold,
@@ -408,7 +407,9 @@ class _SignUpState extends State<SignUpScreen> {
                                                   Icons.arrow_forward,
                                                   color: this.primaryColor,
                                                 ),
-                                                onPressed: () => {},
+                                                onPressed: () {
+                                                  if (!_isLoading) signUp();
+                                                },
                                               ),
                                             ),
                                           )
@@ -430,9 +431,7 @@ class _SignUpState extends State<SignUpScreen> {
                                           )
                                         ],
                                 ),
-                                onPressed: () {
-                                  if (!_isLoading) signUp();
-                                },
+                                onPressed: () {},
                               ),
                             ),
                           ],

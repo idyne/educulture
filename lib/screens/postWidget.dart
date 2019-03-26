@@ -1,16 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:after_layout/after_layout.dart';
 import '../User.dart';
-import './commentsScreen.dart';
+import './postScreen.dart';
 import './profileScreen.dart';
 
 final User user = new User();
 
 class Post extends StatefulWidget {
-  const Post({Key key, @required this.post}) : super(key: key);
+  const Post({Key key, @required this.post, @required this.isInList})
+      : super(key: key);
   final DocumentSnapshot post;
+  final bool isInList;
   @override
   _PostState createState() => _PostState();
 }
@@ -19,6 +22,8 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
   Future _getCurrentUser;
   double _postOpacity = 0;
   bool isDeleting = false;
+  bool subScribeRadio = false;
+  String dropdownValue = 'One';
 
   @override
   void initState() {
@@ -33,13 +38,108 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
     changePostOpacity();
   }
 
+  void _showLikesList() {
+    // flutter defined function
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.6,
+            height: 300,
+            child: ListView.builder(
+              itemBuilder: (context, index) {
+                return FutureBuilder(
+                  future: user.getUserInfo(widget.post.data['likes'][index]),
+                  builder: (context, snapshot) {
+                    return snapshot.connectionState == ConnectionState.done
+                        ? Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(4),
+                              highlightColor: Colors.deepOrange,
+                              splashColor: Colors.deepOrange,
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => ProfileScreen(
+                                              uid: snapshot.data['uid'],
+                                            )));
+                              },
+                              child: Row(
+                                children: <Widget>[
+                                  Container(
+                                    padding: EdgeInsets.all(2),
+                                    margin: EdgeInsets.only(right: 10),
+                                    width: 30,
+                                    height: 30,
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.grey,
+                                      backgroundImage:
+                                          CachedNetworkImageProvider(snapshot
+                                              .data['profilePictureURL']),
+                                      radius: 50.0,
+                                    ),
+                                  ),
+                                  Text(
+                                      '${snapshot.data['firstName']} ${snapshot.data['lastName']}')
+                                ],
+                              ),
+                            ))
+                        : Container();
+                  },
+                );
+              },
+              itemCount: widget.post.data['likes'].length,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeletionDialog() {
+    // flutter defined function
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text("Delete"),
+          content: new Text("Are you sure?"),
+          actions: <Widget>[
+            // usually buttons at the bottom of the dialog
+            new FlatButton(
+              child: new Text("No", style: TextStyle(color: Colors.deepOrange)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            new FlatButton(
+              child:
+                  new Text("Yes", style: TextStyle(color: Colors.deepOrange)),
+              onPressed: () {
+                deletePost();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void deletePost() async {
+    if (!widget.isInList) Navigator.pop(context);
     if (!isDeleting) {
       setState(() {
         isDeleting = true;
       });
       try {
-        await Firestore.instance
+        /*await Firestore.instance
             .collection('Comments')
             .where('post', isEqualTo: widget.post.documentID)
             .getDocuments()
@@ -47,7 +147,7 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
           for (var document in comments.documents) {
             document.reference.delete();
           }
-        });
+        });*/
         await Firestore.instance.runTransaction((transaction) async {
           await transaction.delete(
               Firestore.instance.document('Posts/' + widget.post.documentID));
@@ -87,44 +187,6 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
     return (now.difference(date).inDays ~/ 365).toString() + ' years ago';
   }
 
-  Widget header(BuildContext context) {
-    return Container(
-        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-        decoration: BoxDecoration(
-            color: Colors.black12,
-            border: Border.all(color: Colors.black87, width: 1),
-            borderRadius: BorderRadius.all(Radius.circular(5.0))),
-        margin: EdgeInsets.only(bottom: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: new DecorationImage(
-                    image: new ExactAssetImage('assets/images/avatar.png'),
-                    fit: BoxFit.cover,
-                  ),
-                )),
-            !widget.post['isAnonymous']
-                ? FlatButton(
-                    child: Text(
-                      widget.post['ownerFullName'] + 'yarak',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    onPressed: () {
-                      print(widget.post['ownerFullName']);
-                    },
-                  )
-                : Text('Anonymous', style: TextStyle(fontSize: 14))
-          ],
-        ));
-  }
-
   Widget footer(BuildContext context) {
     return Container(
       child: Row(
@@ -134,6 +196,7 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
         children: <Widget>[
           Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
               FutureBuilder(
                 future: user.getCurrentUserID(),
@@ -154,10 +217,17 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
                               IconButton(
                                 color: Colors.deepOrange,
                                 highlightColor: Colors.deepOrange,
-                                icon: Icon(
+                                icon:
                                     widget.post['likes'].contains(snapshot.data)
-                                        ? FontAwesomeIcons.solidThumbsUp
-                                        : FontAwesomeIcons.thumbsUp),
+                                        ? Icon(
+                                            FontAwesomeIcons.poo,
+                                            size: 20,
+                                          )
+                                        : Icon(
+                                            FontAwesomeIcons.poop,
+                                            color: Color(0xC4FF5722),
+                                            size: 20,
+                                          ),
                                 onPressed: () async {
                                   if (widget.post['likes']
                                       .contains(snapshot.data)) {
@@ -180,8 +250,12 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
                                 },
                                 splashColor: Colors.transparent,
                               ),
-                              Text(widget.post['likes'].length.toString() +
-                                  ' likes')
+                              InkWell(
+                                child: Text(
+                                    widget.post['likes'].length.toString() +
+                                        ' likes'),
+                                onTap: _showLikesList,
+                              )
                             ],
                           ),
                         )
@@ -190,31 +264,32 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
                   ///load until snapshot.hasData resolves to true
                 },
               ),
-              Container(
-                decoration: BoxDecoration(
-                    border: Border.all(color: Colors.transparent, width: 1),
-                    borderRadius: BorderRadius.all(Radius.circular(50))),
-                padding: EdgeInsets.only(right: 10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    IconButton(
-                      color: Colors.deepOrange,
-                      highlightColor: Colors.deepOrange,
-                      icon: Icon(FontAwesomeIcons.comment),
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CommentsScreen(
-                                      postID: widget.post.documentID,
-                                    )));
-                      },
-                    ),
-                    Text(widget.post['commentsCount'].toString() + ' comments')
-                  ],
-                ),
-              ),
+              widget.isInList
+                  ? Container(
+                      decoration: BoxDecoration(
+                          border:
+                              Border.all(color: Colors.transparent, width: 1),
+                          borderRadius: BorderRadius.all(Radius.circular(50))),
+                      padding: EdgeInsets.only(right: 10, top: 15),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          Container(
+                            margin: EdgeInsets.only(bottom: 14),
+                            child: Icon(
+                              FontAwesomeIcons.toiletPaper,
+                              color: Colors.deepOrange,
+                              size: 20,
+                            ),
+                          ),
+                          Text(widget.post['commentsCount'].toString() +
+                              ' comments')
+                        ],
+                      ),
+                    )
+                  : Container(),
               FutureBuilder(
                 future: _getCurrentUser,
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -225,10 +300,10 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
                                 color: Colors.red,
                                 highlightColor: Colors.deepOrange,
                                 icon: Icon(
-                                  Icons.delete_outline,
-                                  size: 30,
+                                  FontAwesomeIcons.toilet,
+                                  size: 20,
                                 ),
-                                onPressed: deletePost),
+                                onPressed: _showDeletionDialog),
                             Text('Delete')
                           ],
                         )
@@ -244,6 +319,7 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: <Widget>[
                   Text(
                     _compareDate(widget.post['date']),
@@ -252,15 +328,15 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
                   Container(
                     margin: EdgeInsets.only(top: 8),
                     child: !widget.post['isAnonymous']
-                        ? FlatButton(
+                        ? InkWell(
                             highlightColor: Colors.transparent,
                             splashColor: Colors.transparent,
                             child: Text(
-                              '-' + widget.post['ownerFullName'],
+                              widget.post['ownerFullName'],
                               style: TextStyle(
                                   fontSize: 14, fontFamily: 'Poppins-Black'),
                             ),
-                            onPressed: () {
+                            onTap: () {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -284,35 +360,109 @@ class _PostState extends State<Post> with AfterLayoutMixin<Post> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _postOpacity,
-      duration: Duration(milliseconds: 500),
-      curve: Curves.ease,
-      child: Container(
-        child: Flex(
-          direction: Axis.vertical,
-          children: <Widget>[
-            Card(
-                elevation: 10,
-                child: Container(
-                  margin: EdgeInsets.only(top: 10),
-                  padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        widget.post['title'],
-                        style: TextStyle(
-                            fontSize: 25, fontFamily: 'Poppins-Black'),
-                      ),
-                      Text(widget.post['content'],
-                          style: TextStyle(fontSize: 20)),
-                      footer(context)
-                    ],
-                  ),
-                ))
-          ],
+    return InkWell(
+      onTap: () {
+        widget.isInList
+            ? Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => PostScreen(
+                          post: widget.post,
+                        )))
+            : print('not inList');
+      },
+      child: AnimatedOpacity(
+        opacity: _postOpacity,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.ease,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 3),
+          margin: EdgeInsets.only(bottom: 5),
+          child: Flex(
+            direction: Axis.vertical,
+            children: <Widget>[
+              Card(
+                  elevation: 10,
+                  child: Container(
+                    margin: EdgeInsets.only(top: 10),
+                    padding: EdgeInsets.fromLTRB(10, 0, 10, 5),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              child: Text(
+                                widget.post['title'],
+                                style: TextStyle(
+                                    fontSize: 25, fontFamily: 'Poppins-Black'),
+                              ),
+                            ),
+                            PopupMenuButton(
+                              onSelected: (value) async {
+                                String userID = await user.getCurrentUserID();
+                                if (value == 'subscribe') {
+                                  if (!widget.post.data['subscribers']
+                                      .contains(userID)) {
+                                    Firestore.instance
+                                        .document(
+                                            'Posts/' + widget.post.documentID)
+                                        .updateData({
+                                      "subscribers":
+                                          FieldValue.arrayUnion([userID])
+                                    });
+                                  } else {
+                                    print('AA');
+                                    Firestore.instance
+                                        .document(
+                                            'Posts/' + widget.post.documentID)
+                                        .updateData({
+                                      "subscribers":
+                                          FieldValue.arrayRemove([userID])
+                                    });
+                                  }
+                                }
+                              },
+                              itemBuilder: (context) {
+                                return [
+                                  PopupMenuItem(
+                                    value: 'subscribe',
+                                    child: FutureBuilder(
+                                      future: user.getCurrentUserID(),
+                                      builder: (context, userID) {
+                                        return userID.connectionState ==
+                                                ConnectionState.done
+                                            ? Text(widget
+                                                    .post.data['subscribers']
+                                                    .contains(userID.data)
+                                                ? 'Unsubscribe'
+                                                : 'Subscribe')
+                                            : Container();
+                                      },
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'report',
+                                    child: Text('Report'),
+                                  )
+                                ];
+                              },
+                            ),
+                          ],
+                        ),
+                        Text(widget.post['content'],
+                            style: TextStyle(fontSize: 20)),
+                        footer(context)
+                      ],
+                    ),
+                  ))
+            ],
+          ),
         ),
       ),
     );

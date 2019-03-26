@@ -247,7 +247,17 @@ class _ProfileEditScreenStateState extends State<ProfileEditScreen> {
                                                       setState(() {
                                                         _isSavingForm = false;
                                                       });
+                                                      Toast.show(
+                                                          "Profile saved",
+                                                          context,
+                                                          duration: 3);
                                                     }
+                                                  },
+                                                ),
+                                                RaisedButton(
+                                                  child: Text("Sign Out"),
+                                                  onPressed: () {
+                                                    user.signOut();
                                                   },
                                                 )
                                               ],

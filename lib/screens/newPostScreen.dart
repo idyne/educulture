@@ -28,8 +28,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   _sharePost(Transaction transaction, String title, String content) async {
-    Map<dynamic, dynamic> userInfo =
-        await user.getUserInfo(await user.getCurrentUserID());
+    String userID = await user.getCurrentUserID();
+    Map<dynamic, dynamic> userInfo = await user.getUserInfo(userID);
     await transaction.set(Firestore.instance.collection("Posts").document(), {
       'title': title,
       'content': content,
@@ -39,6 +39,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
       'date': FieldValue.serverTimestamp(),
       'comments': [],
       'likes': [],
+      'subscribers': [userID],
       'commentsCount': 0
     });
     Navigator.of(context).pop();
@@ -71,7 +72,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               }
                             },
                             onSaved: (val) => setState(() => title = val),
-                            keyboardType: TextInputType.emailAddress,
+                            keyboardType: TextInputType.text,
+                            textCapitalization: TextCapitalization.sentences,
+                            autocorrect: true,
                           ),
                           TextFormField(
                             maxLength: 250,
@@ -84,6 +87,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                               }
                             },
                             onSaved: (val) => setState(() => content = val),
+                            keyboardType: TextInputType.text,
+                            textCapitalization: TextCapitalization.sentences,
+                            autocorrect: true,
                           ),
                           Row(
                             children: <Widget>[

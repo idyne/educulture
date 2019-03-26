@@ -103,8 +103,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
                       title: new TextFormField(
                         autocorrect: true,
                         textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.text,
                         controller: _commentController,
-                        maxLines: 2,
                         decoration: new InputDecoration(
                           hintText: 'Write a comment...',
                           icon: Icon(FontAwesomeIcons.comment),
